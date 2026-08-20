@@ -858,3 +858,239 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Student welcome hero ─────────────────────────────────────────────────── */
+
+.student-welcome__sub {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 0.25rem 0 0;
+}
+
+/* ── Topic card "no pages" placeholder ──────────────────────────────────── */
+
+.topic-card__no-pages {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Page button: draft / in_review indicator ──────────────────────────── */
+
+.page-btn--draft {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.page-btn__status-badge {
+  margin-left: 0.3rem;
+  font-size: 0.7rem;
+}
+
+/* ── Page status badge (curriculum page header) ─────────────────────────── */
+
+.page-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.page-status-badge--draft {
+  background: #fef9c3;
+  color: #854d0e;
+  border-color: #fde047;
+}
+
+.page-status-badge--in_review {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.page-status-badge--published {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+/* ── Danger button ──────────────────────────────────────────────────────── */
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-danger:hover {
+  background: #b91c1c;
+}
+.btn-danger--sm {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.panel--danger {
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+
+/* ── Extended topic section row (with status select & delete) ───────────── */
+
+.topic-sections__row--extended {
+  grid-template-columns: 120px 1fr 140px auto auto;
+}
+
+.topic-sections__status {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  font-size: 0.82rem;
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+}
+
+/* ── Add page row ─────────────────────────────────────────────────────────── */
+
+.add-page-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.add-page-select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  font-size: 0.85rem;
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.btn-primary--sm {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+/* ── Block palette (EditorToolbar) ──────────────────────────────────────── */
+
+.editor-toolbar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem 0.5rem 0 0;
+  overflow: hidden;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-toolbar__btn {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.1s;
+}
+.editor-toolbar__btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+.editor-toolbar__btn--active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.editor-toolbar__sep {
+  width: 1px;
+  background: var(--border);
+  margin: 0.1rem 0.2rem;
+  align-self: stretch;
+}
+
+.block-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  background: #f1f5f9;
+  border-bottom: 1px solid var(--border);
+}
+
+.block-palette__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.block-palette__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.block-palette__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.45rem 0.65rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: grab;
+  font-size: 0.72rem;
+  min-width: 68px;
+  transition: background 0.1s, border-color 0.1s, transform 0.1s;
+  user-select: none;
+}
+.block-palette__item:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.block-palette__item:active {
+  cursor: grabbing;
+}
+
+.block-palette__icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.block-palette__name {
+  text-align: center;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.2;
+}
