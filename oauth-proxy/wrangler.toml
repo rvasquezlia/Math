@@ -1,0 +1,9 @@
+name = "lia-math-oauth-proxy"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are set as Worker secrets
+# (via `wrangler secret put`, or automatically by the deploy-oauth-proxy.yml
+# workflow from repository secrets). Never put them here in plain text.
+[vars]
+ALLOWED_ORIGIN = "https://rvasquezlia.github.io"

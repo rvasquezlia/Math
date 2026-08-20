@@ -38,6 +38,9 @@ jobs:
         run: npm ci
 
       - name: Build static export
+        env:
+          NEXT_PUBLIC_GITHUB_CLIENT_ID: ${{ vars.GITHUB_OAUTH_CLIENT_ID }}
+          NEXT_PUBLIC_OAUTH_PROXY_URL: ${{ vars.OAUTH_PROXY_URL }}
         run: npm run build
 
       - name: Upload Pages artifact
