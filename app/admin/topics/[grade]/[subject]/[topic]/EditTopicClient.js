@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import RequireRole from "../../../../../components/RequireRole";
 import { useAuth } from "../../../../../contexts/AuthContext";
+import { updateTopic, deleteTopic } from "../../../../../../lib/adminApi";
 
 const PAGE_SLUGS = [
   { id: "vocabulary", label: "Vocabulary" },
@@ -27,6 +29,7 @@ function toSlug(str) {
 
 export default function EditTopicClient({ params, gradeNode, subjectNode, topicNode }) {
   const { user } = useAuth();
+  const router = useRouter();
   const isAdmin = user?.role === "admin";
 
   const [title, setTitle] = useState(topicNode.title);
@@ -38,6 +41,10 @@ export default function EditTopicClient({ params, gradeNode, subjectNode, topicN
   const [showAddPage, setShowAddPage] = useState(false);
   const [newPageId, setNewPageId] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
 
   const draftTopic = useMemo(
     () => ({ ...topicNode, title, standard, summary, pages }),
@@ -73,6 +80,33 @@ export default function EditTopicClient({ params, gradeNode, subjectNode, topicN
 
   const availableToAdd = PAGE_SLUGS.filter((ps) => !pages.find((p) => p.id === ps.id));
 
+  async function handleSave() {
+    setError("");
+    setSaved(false);
+    setSaving(true);
+    try {
+      await updateTopic(user, gradeNode.slug, subjectNode.slug, draftTopic);
+      setSaved(true);
+    } catch (err) {
+      setError(err.message ?? "Failed to save changes.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    setError("");
+    setDeleting(true);
+    try {
+      await deleteTopic(user, gradeNode.slug, subjectNode.slug, topicNode.slug);
+      setShowDeleteConfirm(false);
+      router.push("/admin");
+    } catch (err) {
+      setError(err.message ?? "Failed to delete topic.");
+      setDeleting(false);
+    }
+  }
+
   return (
     <RequireRole roles={["admin", "editor"]}>
       <div className="page-shell">
@@ -99,22 +133,16 @@ export default function EditTopicClient({ params, gradeNode, subjectNode, topicN
           <section className="panel panel--danger">
             <h2 className="grade-heading" style={{ color: "#dc2626" }}>⚠️ Confirm Delete</h2>
             <p>
-              Are you sure you want to delete <strong>{title}</strong>? This will generate a
-              JSON diff you can commit to remove it from{" "}
-              <code>content/taxonomy.json</code>. The actual lesson HTML files will not be
-              deleted automatically.
+              Are you sure you want to delete <strong>{title}</strong>? This removes it from{" "}
+              <code>content/taxonomy.json</code> immediately. The lesson HTML files themselves
+              are not deleted automatically.
             </p>
             <div className="admin-toolbar">
-              <button className="btn-ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-              <button
-                className="btn-danger"
-                onClick={() => {
-                  // Generate delete-diff instructions
-                  setShowDeleteConfirm(false);
-                  alert(`Remove the topic with slug "${topicNode.slug}" from the "${subjectNode.title}" subject in content/taxonomy.json and commit.`);
-                }}
-              >
-                Yes, delete
+              <button className="btn-ghost" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                Cancel
+              </button>
+              <button className="btn-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? "Deleting…" : "Yes, delete"}
               </button>
             </div>
           </section>
@@ -222,13 +250,19 @@ export default function EditTopicClient({ params, gradeNode, subjectNode, topicN
         </section>
 
         <section className="panel">
-          <h2 className="grade-heading">Updated JSON Preview</h2>
-          <p>
-            Copy this topic object into <code>content/taxonomy.json</code> to apply changes.
-          </p>
-          <pre className="topic-json-preview">
-            {JSON.stringify(draftTopic, null, 2)}
-          </pre>
+          {error && (
+            <p style={{ color: "#dc2626", fontSize: "0.85rem", marginTop: 0 }}>{error}</p>
+          )}
+          {saved && !error && (
+            <p style={{ color: "#16a34a", fontSize: "0.85rem", marginTop: 0 }}>
+              Saved — the site is rebuilding and should reflect your changes in about a minute.
+            </p>
+          )}
+          <div className="form-actions">
+            <button type="button" className="btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
         </section>
       </div>
     </RequireRole>

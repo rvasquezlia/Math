@@ -93,12 +93,49 @@ Back in **Settings → Secrets and variables → Actions → Variables**, edit
 Then **Actions** tab → **Deploy GitHub Pages** → **Run workflow** to rebuild
 the site with both variables baked in.
 
+## 6. Enable the Admin CMS (create / edit / delete topics)
+
+Creating or editing a topic in `/admin` now commits directly to the repo
+through the same Worker — using a repo-scoped token that lives only as a
+Worker secret, never in your browser. Two more secrets are needed.
+
+**Generate a fine-grained GitHub PAT for the Worker:**
+
+1. GitHub → Settings → Developer settings → **Personal access tokens →
+   Fine-grained tokens → Generate new token**.
+2. **Repository access**: "Only select repositories" → `rvasquezlia/Math`.
+3. **Permissions → Repository permissions → Contents**: set to
+   **Read and write**. Leave everything else as-is.
+4. Generate it and copy the token (starts with `github_pat_`).
+
+**Generate a random session-signing secret** — any long random string works,
+e.g. run this locally: `openssl rand -hex 32` (or use a password
+generator for a 40+ character string).
+
+Add both as **repository secrets** (Settings → Secrets and variables →
+Actions → Secrets):
+
+| Name | Value |
+|---|---|
+| `ADMIN_COMMIT_TOKEN` | the fine-grained PAT from above |
+| `SESSION_SIGNING_SECRET` | the random string from above |
+
+Then **Actions** tab → **Deploy OAuth Proxy (Cloudflare Worker)** → **Run
+workflow** to push these onto the Worker as `GITHUB_REPO_TOKEN` and
+`SESSION_SECRET`.
+
+**Important:** sign out and back in on the site afterward — your session
+token is minted at sign-in, so an old session won't have CMS access until
+you get a fresh one.
+
 ## Done
 
 Visit `https://rvasquezlia.github.io/Math/` — you should now see a real
 "Sign in with GitHub" button. After signing in, your role is looked up in
 `config/roles.json` by email; `rvasquez@lincoln.edu.ni` is already listed
-as `admin`.
+as `admin`. Creating a topic in `/admin/topics/new` commits it (and
+scaffolds placeholder pages) directly to the repo; the site rebuilds
+automatically and the topic appears within about a minute.
 
 ## Troubleshooting
 
@@ -113,3 +150,10 @@ as `admin`.
   Authorization callback URL in the GitHub OAuth App doesn't match exactly.
 - "Access Denied" after signing in? Your GitHub account's verified email
   isn't in `config/roles.json`'s `admins`, `editors`, or `allowedDomains`.
+- Creating/saving a topic fails with "unauthorized" or "forbidden"? Sign
+  out and back in (session tokens are minted at sign-in) and confirm
+  `ADMIN_COMMIT_TOKEN` / `SESSION_SIGNING_SECRET` are set and the Worker
+  was redeployed after adding them.
+- Creating/saving fails with a GitHub API error? The fine-grained PAT
+  either expired or doesn't have **Contents: Read and write** on
+  `rvasquezlia/Math` — regenerate it and update `ADMIN_COMMIT_TOKEN`.

@@ -72,6 +72,7 @@ export function AuthProvider({ children }) {
         login: data.login,
         avatarUrl: data.avatar_url ?? "",
         role,
+        token: data.sessionToken ?? "",
       };
       setUser(profile);
       sessionStorage.setItem("auth_user", JSON.stringify(profile));
