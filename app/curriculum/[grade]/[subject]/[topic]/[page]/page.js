@@ -3,6 +3,7 @@ import path from "node:path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import taxonomy from "../../../../../../content/taxonomy.json";
+import PageToolbar from "./PageToolbar";
 
 const LESSONS_ROOT = path.join(process.cwd(), "Lessons");
 const LOGO_PATH = path.join(LESSONS_ROOT, "assets", "lia-logo.png");
@@ -80,12 +81,12 @@ export default async function CurriculumPage({ params }) {
           <h1>{topicNode.title}</h1>
           <p className="curriculum-page__subtitle">{pageNode.label ?? pageNode.title}</p>
         </div>
-        <div className="admin-toolbar">
-          <Link href="/" className="btn-ghost">← Back</Link>
-          <Link href={`/admin/topics/${params.grade}/${params.subject}/${params.topic}/`} className="btn-primary">
-            Edit Topic
-          </Link>
-        </div>
+        <PageToolbar
+          params={params}
+          pageStatus={pageNode.status ?? null}
+          topicTitle={topicNode.title}
+          pageTitle={pageNode.label ?? pageNode.title}
+        />
       </div>
       <iframe
         title={`${topicNode.title} - ${pageNode.title}`}

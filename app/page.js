@@ -15,6 +15,18 @@ const PAGE_ORDER = [
   "teacher-guide",
 ];
 
+/** Pages visible to a given role, respecting status & teacher-guide access. */
+function visiblePages(pages, canEdit, canSeeTeacherGuide) {
+  return PAGE_ORDER.map((slug) => pages.find((p) => p.slug === slug))
+    .filter((p) => {
+      if (!p) return false;
+      if (p.id === "teacher-guide" && !canSeeTeacherGuide) return false;
+      // Students only see published pages; editors/admins see all statuses
+      if (!canEdit && p.status && p.status !== "published") return false;
+      return true;
+    });
+}
+
 function computeStats() {
   let totalSubjects = 0;
   let totalTopics = 0;
@@ -31,14 +43,64 @@ function computeStats() {
   return { grades: taxonomy.grades.length, totalSubjects, totalTopics, totalPages };
 }
 
+/** Topic card shared between student and editor views. */
+function TopicCard({ topic, grade, subject, canEdit, canSeeTeacherGuide }) {
+  const pages = visiblePages(topic.pages, canEdit, canSeeTeacherGuide);
+
+  return (
+    <article className="topic-card">
+      <header className="topic-card__header">
+        <h4 className="topic-card__title">{topic.title}</h4>
+        <div className="topic-card__meta">
+          <span className="topic-card__standard">{topic.standard}</span>
+          {canEdit && (
+            <Link
+              href={`/admin/topics/${grade.slug}/${subject.slug}/${topic.slug}/`}
+              className="topic-card__edit-btn"
+              title="Edit topic"
+            >
+              ✏️
+            </Link>
+          )}
+        </div>
+      </header>
+
+      {topic.summary && (
+        <p className="topic-card__summary">{topic.summary}</p>
+      )}
+
+      {pages.length === 0 ? (
+        <p className="topic-card__no-pages">No published pages yet.</p>
+      ) : (
+        <div className="page-buttons">
+          {pages.map((page) => (
+            <Link
+              key={page.id}
+              href={`/curriculum/${grade.slug}/${subject.slug}/${topic.slug}/${page.slug}/`}
+              className={`page-btn page-btn--${page.id}${page.status && page.status !== "published" ? " page-btn--draft" : ""}`}
+              title={page.status && page.status !== "published" ? `Status: ${page.status}` : undefined}
+            >
+              {page.label ?? page.title}
+              {canEdit && page.status && page.status !== "published" && (
+                <span className="page-btn__status-badge">{page.status === "in_review" ? "⏳" : "✏️"}</span>
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
 export default function HomePage() {
   const { user, loading } = useAuth();
   const role = user?.role ?? null;
   const canEdit = role === "admin" || role === "editor";
   const canSeeTeacherGuide = canEdit;
   const isAdmin = role === "admin";
+  const isStudent = role === "student";
 
-  // Show login page while loading or when signed out
+  // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="login-page">
@@ -51,6 +113,7 @@ export default function HomePage() {
     );
   }
 
+  // ── Signed out ───────────────────────────────────────────────────────────
   if (!user) {
     return (
       <div className="login-page">
@@ -74,9 +137,57 @@ export default function HomePage() {
 
   const stats = computeStats();
 
+  // ── Student view ─────────────────────────────────────────────────────────
+  if (isStudent) {
+    return (
+      <div className="page-shell">
+        <section className="hero-card student-welcome">
+          <span className="eyebrow">Student Dashboard</span>
+          <h1>Welcome, {user.name}! 👋</h1>
+          <p className="student-welcome__sub">
+            Browse your lessons below. Click any page button to open the lesson.
+          </p>
+        </section>
+
+        {taxonomy.grades.map((grade) => (
+          <section key={grade.id} className="panel">
+            <h2 className="grade-heading">{grade.title}</h2>
+
+            {grade.subjects.map((subject) => {
+              const publishedTopics = subject.topics.filter((t) =>
+                visiblePages(t.pages, false, false).length > 0,
+              );
+              if (publishedTopics.length === 0) return null;
+
+              return (
+                <div key={subject.id} className="subject-section">
+                  <div className="subject-section__header">
+                    <h3 className="subject-heading">{subject.title}</h3>
+                  </div>
+                  <div className="topic-grid">
+                    {publishedTopics.map((topic) => (
+                      <TopicCard
+                        key={topic.id}
+                        topic={topic}
+                        grade={grade}
+                        subject={subject}
+                        canEdit={false}
+                        canSeeTeacherGuide={false}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        ))}
+      </div>
+    );
+  }
+
+  // ── Editor / Admin view ──────────────────────────────────────────────────
   return (
     <div className="page-shell">
-      {/* Welcome / stats bar */}
       <section className="hero-card">
         <span className="eyebrow">Curriculum Index</span>
         <h1>LIA Math Curriculum</h1>
@@ -84,31 +195,17 @@ export default function HomePage() {
 
         {isAdmin && (
           <dl className="stats">
-            <div>
-              <dt>Grades</dt>
-              <dd>{stats.grades}</dd>
-            </div>
-            <div>
-              <dt>Subjects</dt>
-              <dd>{stats.totalSubjects}</dd>
-            </div>
-            <div>
-              <dt>Topics</dt>
-              <dd>{stats.totalTopics}</dd>
-            </div>
-            <div>
-              <dt>Pages</dt>
-              <dd>{stats.totalPages}</dd>
-            </div>
+            <div><dt>Grades</dt><dd>{stats.grades}</dd></div>
+            <div><dt>Subjects</dt><dd>{stats.totalSubjects}</dd></div>
+            <div><dt>Topics</dt><dd>{stats.totalTopics}</dd></div>
+            <div><dt>Pages</dt><dd>{stats.totalPages}</dd></div>
           </dl>
         )}
 
-        {isAdmin && (
-          <div className="admin-toolbar" style={{ marginTop: "1rem" }}>
-            <Link href="/admin" className="btn-primary">Admin Dashboard</Link>
-            <Link href="/admin/topics/new" className="btn-ghost">+ New Topic</Link>
-          </div>
-        )}
+        <div className="admin-toolbar" style={{ marginTop: "1rem" }}>
+          {isAdmin && <Link href="/admin" className="btn-primary">Admin Dashboard</Link>}
+          {canEdit && <Link href="/admin/topics/new" className="btn-ghost">+ New Topic</Link>}
+        </div>
       </section>
 
       {taxonomy.grades.map((grade) => (
@@ -130,49 +227,16 @@ export default function HomePage() {
               </div>
 
               <div className="topic-grid">
-                {subject.topics.map((topic) => {
-                  const pages = PAGE_ORDER.map((slug) =>
-                    topic.pages.find((p) => p.slug === slug),
-                  ).filter(
-                    (p) => p && (canSeeTeacherGuide || p.id !== "teacher-guide"),
-                  );
-
-                  return (
-                    <article key={topic.id} className="topic-card">
-                      <header className="topic-card__header">
-                        <h4 className="topic-card__title">{topic.title}</h4>
-                        <div className="topic-card__meta">
-                          <span className="topic-card__standard">{topic.standard}</span>
-                          {canEdit && (
-                            <Link
-                              href={`/admin/topics/${grade.slug}/${subject.slug}/${topic.slug}/`}
-                              className="topic-card__edit-btn"
-                              title="Edit topic"
-                            >
-                              ✏️
-                            </Link>
-                          )}
-                        </div>
-                      </header>
-
-                      {topic.summary && (
-                        <p className="topic-card__summary">{topic.summary}</p>
-                      )}
-
-                      <div className="page-buttons">
-                        {pages.map((page) => (
-                          <Link
-                            key={page.id}
-                            href={`/curriculum/${grade.slug}/${subject.slug}/${topic.slug}/${page.slug}/`}
-                            className={`page-btn page-btn--${page.id}`}
-                          >
-                            {page.label ?? page.title}
-                          </Link>
-                        ))}
-                      </div>
-                    </article>
-                  );
-                })}
+                {subject.topics.map((topic) => (
+                  <TopicCard
+                    key={topic.id}
+                    topic={topic}
+                    grade={grade}
+                    subject={subject}
+                    canEdit={canEdit}
+                    canSeeTeacherGuide={canSeeTeacherGuide}
+                  />
+                ))}
               </div>
             </div>
           ))}

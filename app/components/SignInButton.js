@@ -15,9 +15,9 @@ export default function SignInButton() {
     return (
       <span
         className="auth-badge auth-badge--dev"
-        title="Set NEXT_PUBLIC_GITHUB_CLIENT_ID to enable auth"
+        title="Set NEXT_PUBLIC_GITHUB_CLIENT_ID and NEXT_PUBLIC_OAUTH_PROXY_URL to enable GitHub auth"
       >
-        Dev mode
+        Dev mode — auth not configured
       </span>
     );
   }
