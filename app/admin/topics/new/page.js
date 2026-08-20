@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import taxonomy from "../../../../content/taxonomy.json";
 import RequireRole from "../../../components/RequireRole";
+import { useAuth } from "../../../contexts/AuthContext";
+import { createTopic } from "../../../../lib/adminApi";
 
 const PAGE_SLUGS = [
   { id: "vocabulary", label: "Vocabulary" },
@@ -18,6 +20,7 @@ const PAGE_SLUGS = [
 
 function NewTopicForm() {
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   const [gradeSlug, setGradeSlug] = useState(searchParams.get("grade") ?? "");
   const [subjectSlug, setSubjectSlug] = useState(searchParams.get("subject") ?? "");
@@ -29,6 +32,8 @@ function NewTopicForm() {
     PAGE_SLUGS.map((p) => p.id),
   );
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const selectedGrade = taxonomy.grades.find((g) => g.slug === gradeSlug);
   const subjects = selectedGrade?.subjects ?? [];
@@ -53,11 +58,18 @@ function NewTopicForm() {
     );
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    // In the full implementation this would commit via Octokit.
-    // For now, show a success state with the generated JSON.
-    setSubmitted(true);
+    setError("");
+    setSaving(true);
+    try {
+      await createTopic(user, gradeSlug, subjectSlug, newTopicJson);
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message ?? "Failed to create topic.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const newTopicJson = {
@@ -89,11 +101,12 @@ function NewTopicForm() {
 
         {submitted ? (
           <section className="panel">
-            <h2 className="grade-heading">Topic Ready ✅</h2>
+            <h2 className="grade-heading">Topic Committed ✅</h2>
             <p>
-              Your topic <strong>{title}</strong> has been prepared. The JSON below
-              should be committed to <code>content/taxonomy.json</code> under{" "}
-              <code>{gradeSlug} → {subjectSlug} → topics[]</code>.
+              <strong>{title}</strong> was committed to <code>content/taxonomy.json</code>
+              {" "}under <code>{gradeSlug} → {subjectSlug} → topics[]</code>, and placeholder
+              pages were scaffolded for each page you selected. The site is now rebuilding —
+              it usually takes about a minute before the topic shows up on the site.
             </p>
             <pre
               style={{
@@ -224,9 +237,13 @@ function NewTopicForm() {
                 </div>
               </div>
 
+              {error && (
+                <p style={{ color: "#dc2626", fontSize: "0.85rem" }}>{error}</p>
+              )}
+
               <div className="form-actions">
-                <button type="submit" className="btn-primary" disabled={!selectedSubject}>
-                  Create Topic →
+                <button type="submit" className="btn-primary" disabled={!selectedSubject || saving}>
+                  {saving ? "Committing…" : "Create Topic →"}
                 </button>
                 <Link href="/admin" className="btn-ghost">Cancel</Link>
               </div>

@@ -7,3 +7,6 @@ compatibility_date = "2025-01-01"
 # workflow from repository secrets). Never put them here in plain text.
 [vars]
 ALLOWED_ORIGIN = "https://rvasquezlia.github.io"
+REPO_OWNER = "rvasquezlia"
+REPO_NAME = "Math"
+REPO_BRANCH = "main"
