@@ -795,3 +795,66 @@ code {
   color: var(--muted);
   margin: 0;
 }
+
+/* ── Curriculum lesson viewer ─────────────────────────────────────────────── */
+
+.curriculum-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.curriculum-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.curriculum-page__subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+.curriculum-page__frame {
+  width: 100%;
+  min-height: 78vh;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+/* ── Topic editor ─────────────────────────────────────────────────────────── */
+
+.topic-sections {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.topic-sections__row {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.topic-sections__slug {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.topic-json-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-size: 0.78rem;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .topic-sections__row {
+    grid-template-columns: 1fr;
+  }
+}

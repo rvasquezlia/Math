@@ -11,7 +11,9 @@ import { useAuth } from "../contexts/AuthContext";
  * editors and admins.
  */
 export default function Sidebar() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading || !user) return null;
+
   const role = user?.role ?? "student";
   const canSeeTeacherGuide = role === "admin" || role === "editor";
 
