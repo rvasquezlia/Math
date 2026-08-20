@@ -39,7 +39,7 @@ export function deriveRole(email) {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // { name, email, login, avatarUrl, role } | null
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
   /** Exchange a GitHub OAuth code for a user profile via the OAuth proxy. */
@@ -151,4 +151,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }
-
