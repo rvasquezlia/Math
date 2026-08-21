@@ -366,7 +366,9 @@ export default {
       return new Response(null, { status: 204, headers: cors });
     }
 
-    const { pathname } = new URL(request.url);
+    // Normalize away accidental double slashes (e.g. a trailing slash on the
+    // configured proxy URL producing "//commit") so routing is robust either way.
+    const pathname = new URL(request.url).pathname.replace(/\/+/g, "/");
 
     try {
       if (pathname === "/commit" && request.method === "POST") {

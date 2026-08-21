@@ -21,8 +21,9 @@ export function generateStaticParams() {
   );
 }
 
-export default function EditTopicPage({ params }) {
-  const { gradeNode, subjectNode, topicNode } = findTopicNode(params);
+export default async function EditTopicPage({ params }) {
+  const resolvedParams = await params;
+  const { gradeNode, subjectNode, topicNode } = findTopicNode(resolvedParams);
   if (!gradeNode || !subjectNode || !topicNode) {
     return (
       <div className="access-denied">
@@ -34,7 +35,7 @@ export default function EditTopicPage({ params }) {
 
   return (
     <EditTopicClient
-      params={params}
+      params={resolvedParams}
       gradeNode={gradeNode}
       subjectNode={subjectNode}
       topicNode={topicNode}

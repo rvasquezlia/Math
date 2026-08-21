@@ -53,7 +53,8 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }) {
-  const { gradeNode, subjectNode, topicNode, pageNode } = findPageNode(params);
+  const resolvedParams = await params;
+  const { gradeNode, subjectNode, topicNode, pageNode } = findPageNode(resolvedParams);
   if (!gradeNode || !subjectNode || !topicNode || !pageNode) return {};
   return {
     title: `${topicNode.title} · ${pageNode.label ?? pageNode.title}`,
@@ -61,7 +62,8 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function CurriculumPage({ params }) {
-  const { gradeNode, subjectNode, topicNode, pageNode } = findPageNode(params);
+  const resolvedParams = await params;
+  const { gradeNode, subjectNode, topicNode, pageNode } = findPageNode(resolvedParams);
   if (!gradeNode || !subjectNode || !topicNode || !pageNode || !pageNode.sourcePath) {
     notFound();
   }
@@ -82,7 +84,7 @@ export default async function CurriculumPage({ params }) {
           <p className="curriculum-page__subtitle">{pageNode.label ?? pageNode.title}</p>
         </div>
         <PageToolbar
-          params={params}
+          params={resolvedParams}
           pageStatus={pageNode.status ?? null}
           topicTitle={topicNode.title}
           pageTitle={pageNode.label ?? pageNode.title}
