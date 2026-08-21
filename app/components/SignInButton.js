@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ?? "";
 
-const ROLE_COLORS = { admin: "#dc2626", editor: "#d97706", student: "#16a34a" };
+const ROLE_COLORS = { admin: "#f87171", editor: "#fbbf24", student: "#4ade80" };
 
 export default function SignInButton() {
   const { user, loading, accessDenied, signIn, signOut } = useAuth();

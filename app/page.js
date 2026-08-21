@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import taxonomy from "../content/taxonomy.json";
 import { useAuth } from "./contexts/AuthContext";
 import SignInButton from "./components/SignInButton";
+import logo from "../public/lia-logo.png";
 
 const PAGE_ORDER = [
   "vocabulary",
@@ -105,9 +107,9 @@ export default function HomePage() {
     return (
       <div className="login-page">
         <div className="login-card">
-          <div className="login-card__logo">📚</div>
-          <h1 className="login-card__title">LIA Math Curriculum</h1>
-          <p className="login-card__sub">Loading…</p>
+          <Image src={logo} alt="Lincoln International Academy" className="login-card__logo" width={72} height={72} priority />
+          <span className="login-card__badge">LIA Math Curriculum</span>
+          <h1 className="login-card__title">Loading…</h1>
         </div>
       </div>
     );
@@ -118,8 +120,9 @@ export default function HomePage() {
     return (
       <div className="login-page">
         <div className="login-card">
-          <div className="login-card__logo">📚</div>
-          <h1 className="login-card__title">LIA Math Curriculum</h1>
+          <Image src={logo} alt="Lincoln International Academy" className="login-card__logo" width={72} height={72} priority />
+          <span className="login-card__badge">LIA Math Curriculum</span>
+          <h1 className="login-card__title">Welcome Back</h1>
           <p className="login-card__sub">
             Sign in with your school GitHub account to access lessons, activities, and
             teacher resources.
