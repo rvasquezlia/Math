@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import taxonomy from "../../content/taxonomy.json";
 import { useAuth } from "../contexts/AuthContext";
@@ -8,10 +9,13 @@ import { useAuth } from "../contexts/AuthContext";
 /**
  * Collapsible sidebar that renders the full Grade → Subject → Topic tree
  * from /content/taxonomy.json, visible to everyone. Teacher-guide pages
- * are only shown to the logged-in admin.
+ * are only shown to the logged-in admin. The section containing the page
+ * you're currently on starts expanded, and that page's own link is
+ * highlighted.
  */
 export default function Sidebar() {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
   if (loading) return null;
 
   const canSeeTeacherGuide = user?.role === "admin";
@@ -29,13 +33,14 @@ export default function Sidebar() {
           key={grade.id}
           grade={grade}
           canSeeTeacherGuide={canSeeTeacherGuide}
+          pathname={pathname}
         />
       ))}
     </nav>
   );
 }
 
-function GradeSection({ grade, canSeeTeacherGuide }) {
+function GradeSection({ grade, canSeeTeacherGuide, pathname }) {
   const [open, setOpen] = useState(true);
 
   return (
@@ -56,14 +61,16 @@ function GradeSection({ grade, canSeeTeacherGuide }) {
             subject={subject}
             gradeSlug={grade.slug}
             canSeeTeacherGuide={canSeeTeacherGuide}
+            pathname={pathname}
           />
         ))}
     </section>
   );
 }
 
-function SubjectSection({ subject, gradeSlug, canSeeTeacherGuide }) {
-  const [open, setOpen] = useState(false);
+function SubjectSection({ subject, gradeSlug, canSeeTeacherGuide, pathname }) {
+  const isActiveSubject = pathname?.startsWith(`/curriculum/${gradeSlug}/${subject.slug}/`);
+  const [open, setOpen] = useState(isActiveSubject);
 
   return (
     <div className="sidebar__subject">
@@ -85,6 +92,7 @@ function SubjectSection({ subject, gradeSlug, canSeeTeacherGuide }) {
               gradeSlug={gradeSlug}
               subjectSlug={subject.slug}
               canSeeTeacherGuide={canSeeTeacherGuide}
+              pathname={pathname}
             />
           ))}
         </ul>
@@ -93,8 +101,9 @@ function SubjectSection({ subject, gradeSlug, canSeeTeacherGuide }) {
   );
 }
 
-function TopicItem({ topic, gradeSlug, subjectSlug, canSeeTeacherGuide }) {
-  const [open, setOpen] = useState(false);
+function TopicItem({ topic, gradeSlug, subjectSlug, canSeeTeacherGuide, pathname }) {
+  const isActiveTopic = pathname?.startsWith(`/curriculum/${gradeSlug}/${subjectSlug}/${topic.slug}/`);
+  const [open, setOpen] = useState(isActiveTopic);
 
   const visiblePages = topic.pages.filter(
     (p) => canSeeTeacherGuide || p.id !== "teacher-guide",
@@ -113,16 +122,20 @@ function TopicItem({ topic, gradeSlug, subjectSlug, canSeeTeacherGuide }) {
 
       {open && (
         <ul className="sidebar__pages">
-          {visiblePages.map((page) => (
-            <li key={page.id}>
-              <Link
-                href={`/curriculum/${gradeSlug}/${subjectSlug}/${topic.slug}/${page.slug}/`}
-                className="sidebar__page-link"
-              >
-                {page.label ?? page.title}
-              </Link>
-            </li>
-          ))}
+          {visiblePages.map((page) => {
+            const href = `/curriculum/${gradeSlug}/${subjectSlug}/${topic.slug}/${page.slug}/`;
+            const isActive = pathname === href;
+            return (
+              <li key={page.id}>
+                <Link
+                  href={href}
+                  className={`sidebar__page-link${isActive ? " sidebar__page-link--active" : ""}`}
+                >
+                  {page.label ?? page.title}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </li>
