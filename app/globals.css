@@ -5,11 +5,17 @@
   --border: #cbd5e1;
   --primary: #1e3a8a;
   --primary-light: #eff6ff;
+  --primary-mid: #2563eb;
   --accent: #d97706;
   --text: #0f172a;
   --muted: #475569;
-  --sidebar-w: 260px;
   --header-h: 64px;
+  --success: #15803d;
+  --success-bg: #dcfce7;
+  --guide: #7c2d12;
+  --guide-bg: #fff7ed;
+  --empty: #64748b;
+  --empty-bg: #f1f5f9;
 }
 
 * {
@@ -41,13 +47,8 @@ code {
 /* ── App shell ─────────────────────────────────────────────────────────── */
 
 .app-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   height: var(--header-h);
   background: var(--primary);
-  z-index: 100;
   box-shadow: 0 1px 6px rgba(15, 23, 42, 0.2);
 }
 
@@ -89,158 +90,9 @@ code {
   color: #1c1917;
 }
 
-.app-shell {
-  display: flex;
-  padding-top: var(--header-h);
-  min-height: 100vh;
-}
-
 .app-main {
-  flex: 1;
   padding: 1.5rem;
-  overflow-y: auto;
   min-width: 0;
-}
-
-/* ── Sidebar ────────────────────────────────────────────────────────────── */
-
-.sidebar {
-  width: var(--sidebar-w);
-  flex-shrink: 0;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  border-top: 4px solid var(--primary);
-  overflow-y: auto;
-  height: calc(100vh - var(--header-h));
-  position: sticky;
-  top: var(--header-h);
-  padding-bottom: 2rem;
-}
-
-.sidebar__logo {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0.5rem;
-}
-
-.sidebar__home-link {
-  font-weight: 800;
-  font-size: 1rem;
-  color: var(--primary);
-  text-decoration: none;
-}
-
-.sidebar__grade {
-  margin: 0 0 0.25rem;
-}
-
-.sidebar__grade-toggle,
-.sidebar__subject-toggle,
-.sidebar__topic-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  border: none;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  color: var(--text);
-}
-
-.sidebar__grade-toggle {
-  padding: 0.55rem 1rem;
-  font-weight: 800;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--primary);
-  border-left: 4px solid var(--accent);
-}
-
-.sidebar__grade-toggle:hover {
-  background: var(--primary-light);
-}
-
-.sidebar__subject {
-  padding: 0 0 0 0.5rem;
-}
-
-.sidebar__subject-toggle {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.sidebar__subject-toggle:hover {
-  background: var(--primary-light);
-  border-radius: 0.4rem;
-}
-
-.sidebar__topics {
-  margin: 0;
-  padding: 0 0 0 0.5rem;
-  list-style: none;
-}
-
-.sidebar__topic {
-  margin: 0;
-}
-
-.sidebar__topic-toggle {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.sidebar__topic-toggle:hover {
-  background: var(--bg);
-  border-radius: 0.4rem;
-}
-
-.sidebar__pages {
-  margin: 0.25rem 0 0.5rem;
-  padding: 0 0 0 0.75rem;
-  list-style: none;
-  display: grid;
-  gap: 0.3rem;
-}
-
-.sidebar__page-link {
-  display: block;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-}
-
-.sidebar__page-link:hover {
-  background: var(--primary-light);
-  border-color: var(--primary);
-  color: var(--primary);
-  text-decoration: none;
-}
-
-.sidebar__page-link--active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-  font-weight: 700;
-}
-.sidebar__page-link--active:hover {
-  background: var(--primary);
-  color: #fff;
-}
-
-.sidebar__chevron {
-  font-size: 0.7rem;
-  opacity: 0.6;
 }
 
 /* ── Auth components ────────────────────────────────────────────────────── */
@@ -327,6 +179,102 @@ code {
   text-transform: uppercase;
 }
 
+/* ── Public curriculum index (full-page, no app chrome) ─────────────────── */
+
+.lp-shell {
+  max-width: 1200px;
+  margin: 1.5rem auto;
+  background: var(--panel);
+  border: 4px solid var(--primary);
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.lp-header {
+  background: var(--primary);
+  color: #fff;
+  padding: 1.75rem 2rem;
+  text-align: center;
+}
+
+.lp-header__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lp-header__logo {
+  height: 64px;
+  width: auto;
+  display: block;
+}
+
+.lp-header__brand-name {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+
+.lp-header__badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #1c1917;
+  padding: 0.35rem 1.1rem;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.lp-header h1 {
+  margin: 0.4rem 0;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.lp-header__sub {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+  opacity: 0.95;
+}
+
+.lp-content {
+  padding: 1.75rem 2rem 2.25rem;
+}
+
+.grade-section {
+  border: 2px solid var(--border);
+  border-radius: 0.9rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.grade-section:last-child {
+  margin-bottom: 0;
+}
+
+.grade-header {
+  background: var(--primary-mid);
+  color: #fff;
+  padding: 0.9rem 1.4rem;
+}
+
+.grade-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.grade-body {
+  padding: 1rem 1.2rem 1.2rem;
+}
+
 /* ── Curriculum index ───────────────────────────────────────────────────── */
 
 .grade-heading {
@@ -358,74 +306,84 @@ code {
 
 .topic-card {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 0.75rem;
-  padding: 1rem;
+  overflow: hidden;
 }
 
 .topic-card__header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  background: #dbeafe;
+  color: var(--primary);
+  padding: 0.75rem 1.1rem;
 }
 
 .topic-card__title {
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .topic-card__standard {
   font-size: 0.72rem;
-  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #1d4ed8;
+  opacity: 0.85;
   white-space: nowrap;
 }
 
+.topic-card__body {
+  padding: 0.9rem 1.1rem 1.1rem;
+}
+
 .topic-card__summary {
-  margin: 0 0 0.75rem;
-  font-size: 0.8rem;
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
   color: var(--muted);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .page-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
 }
 
 .page-btn {
-  display: inline-block;
-  padding: 0.3rem 0.65rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  border-radius: 0.4rem;
-  border: 1px solid var(--border);
-  background: var(--panel);
+  display: block;
+  padding: 0.65rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.3;
+  border-radius: 0.6rem;
+  border: 2px solid var(--success);
+  background: var(--success-bg);
   color: var(--text);
   text-decoration: none;
-  transition: background 0.12s, border-color 0.12s;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .page-btn:hover {
-  background: var(--primary-light);
-  border-color: var(--primary);
-  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  color: var(--text);
   text-decoration: none;
 }
 
 .page-btn--teacher-guide {
-  border-style: dashed;
-  color: #d97706;
-  border-color: #fcd34d;
+  border-color: var(--guide);
+  background: var(--guide-bg);
+  color: var(--guide);
 }
 
 .page-btn--teacher-guide:hover {
-  background: #fefce8;
-  border-color: #d97706;
-  color: #92400e;
+  color: var(--guide);
 }
 
 /* ── Legacy panels (kept for backward compat) ───────────────────────────── */
@@ -499,10 +457,6 @@ code {
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  .sidebar {
-    display: none; /* collapsed on mobile; toggle TBD in Phase 3 */
-  }
-
   .app-main {
     padding: 1rem;
   }

@@ -1,7 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
 
 export const metadata = {
   title: "LIA Curriculum",
@@ -21,10 +20,7 @@ export default function RootLayout({ children }) {
         />
         <AuthProvider>
           <Header />
-          <div className="app-shell">
-            <Sidebar />
-            <main className="app-main">{children}</main>
-          </div>
+          <main className="app-main">{children}</main>
         </AuthProvider>
       </body>
     </html>
