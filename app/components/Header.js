@@ -8,6 +8,10 @@ import logo from "../../public/lia-logo.png";
 export default function Header() {
   const { user } = useAuth();
 
+  // Public visitors get the plain curriculum pages with no app chrome; the
+  // nav bar only appears once a teacher has unlocked admin editing.
+  if (user?.role !== "admin") return null;
+
   return (
     <header className="app-header">
       <div className="app-header__inner">

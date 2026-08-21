@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import taxonomy from "../content/taxonomy.json";
 import { useAuth } from "./contexts/AuthContext";
+import logo from "../public/lia-logo.png";
 
 const PAGE_ORDER = [
   "vocabulary",
@@ -64,29 +66,31 @@ function TopicCard({ topic, grade, subject, canEdit, canSeeTeacherGuide }) {
         </div>
       </header>
 
-      {topic.summary && (
-        <p className="topic-card__summary">{topic.summary}</p>
-      )}
+      <div className="topic-card__body">
+        {topic.summary && (
+          <p className="topic-card__summary">{topic.summary}</p>
+        )}
 
-      {pages.length === 0 ? (
-        <p className="topic-card__no-pages">No published pages yet.</p>
-      ) : (
-        <div className="page-buttons">
-          {pages.map((page) => (
-            <Link
-              key={page.id}
-              href={`/curriculum/${grade.slug}/${subject.slug}/${topic.slug}/${page.slug}/`}
-              className={`page-btn page-btn--${page.id}${page.status && page.status !== "published" ? " page-btn--draft" : ""}`}
-              title={page.status && page.status !== "published" ? `Status: ${page.status}` : undefined}
-            >
-              {page.label ?? page.title}
-              {canEdit && page.status && page.status !== "published" && (
-                <span className="page-btn__status-badge">{page.status === "in_review" ? "⏳" : "✏️"}</span>
-              )}
-            </Link>
-          ))}
-        </div>
-      )}
+        {pages.length === 0 ? (
+          <p className="topic-card__no-pages">No published pages yet.</p>
+        ) : (
+          <div className="page-buttons">
+            {pages.map((page) => (
+              <Link
+                key={page.id}
+                href={`/curriculum/${grade.slug}/${subject.slug}/${topic.slug}/${page.slug}/`}
+                className={`page-btn page-btn--${page.id}${page.status && page.status !== "published" ? " page-btn--draft" : ""}`}
+                title={page.status && page.status !== "published" ? `Status: ${page.status}` : undefined}
+              >
+                {page.label ?? page.title}
+                {canEdit && page.status && page.status !== "published" && (
+                  <span className="page-btn__status-badge">{page.status === "in_review" ? "⏳" : "✏️"}</span>
+                )}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </article>
   );
 }
@@ -111,47 +115,56 @@ export default function HomePage() {
   // ── Public / browsing view (default for everyone, incl. logged-out) ──────
   if (!isAdmin) {
     return (
-      <div className="page-shell">
-        <section className="hero-card student-welcome">
-          <span className="eyebrow">LIA Math Curriculum</span>
+      <div className="lp-shell">
+        <header className="lp-header">
+          <div className="lp-header__brand">
+            <Image src={logo} alt="" className="lp-header__logo" priority />
+            <span className="lp-header__brand-name">Lincoln International Academy</span>
+          </div>
+          <span className="lp-header__badge">LIA Math Curriculum</span>
           <h1>Welcome! 👋</h1>
-          <p className="student-welcome__sub">
+          <p className="lp-header__sub">
             Browse the lessons below. Click any page button to open it.
           </p>
-        </section>
+        </header>
 
-        {taxonomy.grades.map((grade) => (
-          <section key={grade.id} className="panel">
-            <h2 className="grade-heading">{grade.title}</h2>
+        <div className="lp-content">
+          {taxonomy.grades.map((grade) => (
+            <section key={grade.id} className="grade-section">
+              <div className="grade-header">
+                <h2>{grade.title}</h2>
+              </div>
+              <div className="grade-body">
+                {grade.subjects.map((subject) => {
+                  const publishedTopics = subject.topics.filter((t) =>
+                    visiblePages(t.pages, false, false).length > 0,
+                  );
+                  if (publishedTopics.length === 0) return null;
 
-            {grade.subjects.map((subject) => {
-              const publishedTopics = subject.topics.filter((t) =>
-                visiblePages(t.pages, false, false).length > 0,
-              );
-              if (publishedTopics.length === 0) return null;
-
-              return (
-                <div key={subject.id} className="subject-section">
-                  <div className="subject-section__header">
-                    <h3 className="subject-heading">{subject.title}</h3>
-                  </div>
-                  <div className="topic-grid">
-                    {publishedTopics.map((topic) => (
-                      <TopicCard
-                        key={topic.id}
-                        topic={topic}
-                        grade={grade}
-                        subject={subject}
-                        canEdit={false}
-                        canSeeTeacherGuide={false}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </section>
-        ))}
+                  return (
+                    <div key={subject.id} className="subject-section">
+                      <div className="subject-section__header">
+                        <h3 className="subject-heading">{subject.title}</h3>
+                      </div>
+                      <div className="topic-grid">
+                        {publishedTopics.map((topic) => (
+                          <TopicCard
+                            key={topic.id}
+                            topic={topic}
+                            grade={grade}
+                            subject={subject}
+                            canEdit={false}
+                            canSeeTeacherGuide={false}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
     );
   }
@@ -162,7 +175,7 @@ export default function HomePage() {
       <section className="hero-card">
         <span className="eyebrow">Curriculum Index</span>
         <h1>LIA Math Curriculum</h1>
-        <p>Welcome back, <strong>{user.name}</strong>.</p>
+        <p>Welcome back, <strong>Admin</strong>.</p>
 
         <dl className="stats">
           <div><dt>Grades</dt><dd>{stats.grades}</dd></div>
