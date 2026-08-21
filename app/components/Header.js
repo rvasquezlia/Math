@@ -14,14 +14,8 @@ export default function Header() {
         <div className="app-header__title">
           <Image src={logo} alt="" className="app-header__logo" priority />
           <span className="app-header__site-name">LIA Curriculum</span>
-          {user && (
-            <span className="app-header__grade-badge">
-              {user.role === "admin"
-                ? "Administrator"
-                : user.role === "editor"
-                  ? "Editor"
-                  : "Student View"}
-            </span>
+          {user?.role === "admin" && (
+            <span className="app-header__grade-badge">Administrator</span>
           )}
         </div>
         <SignInButton />

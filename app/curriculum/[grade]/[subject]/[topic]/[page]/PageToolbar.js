@@ -5,13 +5,12 @@ import { useAuth } from "../../../../../contexts/AuthContext";
 
 /**
  * Role-aware toolbar shown on every curriculum page.
- * Students see only the ← Back button.
- * Editors/admins additionally see an Edit Topic button and the page status badge.
+ * Everyone sees the ← Back button; the logged-in admin additionally sees
+ * Edit Topic / Edit Content buttons and the page status badge.
  */
 export default function PageToolbar({ params, pageStatus, topicTitle, pageTitle }) {
   const { user } = useAuth();
-  const role = user?.role ?? "student";
-  const canEdit = role === "admin" || role === "editor";
+  const canEdit = user?.role === "admin";
 
   const statusLabel = { draft: "✏️ Draft", in_review: "⏳ In Review", published: "✅ Published" }[pageStatus] ?? null;
 

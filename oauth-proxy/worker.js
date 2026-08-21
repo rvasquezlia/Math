@@ -3,34 +3,27 @@
  * ────────────────────────────────────────────────────────────────────
  * Cloudflare Worker backend for the LIA Math Curriculum site (a static
  * Next.js export hosted on GitHub Pages, which cannot run any server
- * code of its own). This Worker does two jobs:
+ * code of its own, and so cannot safely hold a GitHub write-token
+ * itself). This Worker's only job:
  *
- * 1. GET  /  ?code=...   — GitHub OAuth token exchange (sign-in).
- *    Exchanges the code for an access token, fetches the user's GitHub
- *    profile + verified email, derives their role from config/roles.json,
- *    and returns a short-lived signed session token alongside the profile.
+ * POST /commit — Admin CMS actions (create/update/delete topic, edit page
+ * content). Commits the change directly to content/taxonomy.json (and
+ * lesson HTML files) using a repo-scoped GitHub token held only as a
+ * Worker secret -- the browser never sees that token.
  *
- * 2. POST /commit        — Admin CMS actions (create/update/delete topic).
- *    Requires the signed session token from step 1 as a Bearer token.
- *    Verifies the caller's role, then commits the change directly to
- *    content/taxonomy.json (and, for new topics, placeholder lesson HTML
- *    files) using a repo-scoped GitHub token held only as a Worker secret
- *    — the browser never sees a token with write access to the repo.
+ * There is no login/session verification here on purpose: the admin UI on
+ * the site is gated by a simple client-side password prompt (not real
+ * auth), and this endpoint trusts whatever it's sent. Its URL isn't
+ * published anywhere public-facing besides the site's own bundled JS.
  *
- * Required Worker secrets (set via `wrangler secret put`, never in code):
- *   GITHUB_CLIENT_ID       — OAuth App client ID
- *   GITHUB_CLIENT_SECRET   — OAuth App client secret
- *   SESSION_SECRET         — random string used to sign session tokens
- *   GITHUB_REPO_TOKEN      — fine-grained PAT, contents:write on this repo only
+ * Required Worker secret (set via `wrangler secret put`, never in code):
+ *   GITHUB_REPO_TOKEN   — fine-grained PAT, contents:write on this repo only
  *
  * Worker vars (see wrangler.toml):
  *   ALLOWED_ORIGIN, REPO_OWNER, REPO_NAME, REPO_BRANCH
  */
 
-import rolesConfig from "../config/roles.json";
-
 const GH_API = "https://api.github.com";
-const SESSION_TTL_SECONDS = 12 * 60 * 60; // 12 hours
 
 // ── CORS ─────────────────────────────────────────────────────────────────
 
@@ -38,8 +31,8 @@ function corsHeaders(origin, allowedOrigin) {
   const allow = allowedOrigin && allowedOrigin !== "*" ? allowedOrigin : (origin ?? "*");
   return {
     "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
     Vary: "Origin",
   };
 }
@@ -48,89 +41,13 @@ function json(data, status, cors) {
   return Response.json(data, { status, headers: cors });
 }
 
-// ── Role derivation (mirrors app/contexts/AuthContext.js) ──────────────────
-
-function deriveRole(email) {
-  if (!email) return null;
-  const lower = email.toLowerCase();
-  const { admins = [], editors = [], allowedDomains = [] } = rolesConfig.roles;
-
-  if (admins.map((e) => e.toLowerCase()).includes(lower)) return "admin";
-  if (editors.map((e) => e.toLowerCase()).includes(lower)) return "editor";
-
-  const domain = lower.split("@")[1] ?? "";
-  if (allowedDomains.map((d) => d.toLowerCase()).includes(domain)) return "student";
-
-  return null;
-}
-
-// ── Session tokens (HMAC-signed, not encrypted — payload is not secret) ────
-
-function base64url(bytes) {
-  let str = typeof bytes === "string" ? bytes : String.fromCharCode(...new Uint8Array(bytes));
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function base64urlDecode(str) {
-  const padded = str.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((str.length + 3) % 4);
-  return atob(padded);
-}
-
-async function hmacKey(secret) {
-  return crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"],
-  );
-}
-
-async function signSessionToken(payload, secret) {
-  const body = base64url(JSON.stringify(payload));
-  const key = await hmacKey(secret);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
-  return `${body}.${base64url(sig)}`;
-}
-
-/** Returns the verified payload, or null if missing/invalid/expired. */
-async function verifySessionToken(token, secret) {
-  if (!token) return null;
-  const parts = token.split(".");
-  if (parts.length !== 2) return null;
-  const [body, sig] = parts;
-  const key = await hmacKey(secret);
-  const expectedSigBytes = Uint8Array.from(base64urlDecode(sig), (c) => c.charCodeAt(0));
-  const valid = await crypto.subtle.verify(
-    "HMAC",
-    key,
-    expectedSigBytes,
-    new TextEncoder().encode(body),
-  );
-  if (!valid) return null;
-  let payload;
-  try {
-    payload = JSON.parse(base64urlDecode(body));
-  } catch {
-    return null;
-  }
-  if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
-  return payload;
-}
-
-function bearerToken(request) {
-  const header = request.headers.get("Authorization") ?? "";
-  const match = header.match(/^Bearer (.+)$/);
-  return match ? match[1] : null;
-}
-
 // ── GitHub content helpers ──────────────────────────────────────────────
 
 function ghHeaders(token, extra) {
   return {
     Authorization: "token " + token,
     Accept: "application/vnd.github+json",
-    "User-Agent": "lia-math-oauth-proxy",
+    "User-Agent": "lia-math-admin-worker",
     ...extra,
   };
 }
@@ -172,7 +89,7 @@ async function ghJson(env, method, path, body) {
  * every single file and can leave GitHub Pages' own deployment lock stuck,
  * causing the *real* final deploy to fail outright.
  */
-async function commitFiles(env, files, message, committer) {
+async function commitFiles(env, files, message) {
   const branch = env.REPO_BRANCH;
   const ref = await ghJson(env, "GET", `/git/ref/heads/${branch}`);
   const headSha = ref.object.sha;
@@ -193,12 +110,11 @@ async function commitFiles(env, files, message, committer) {
     tree: treeItems,
   });
 
-  const commitBody = { message, tree: tree.sha, parents: [headSha] };
-  if (committer) {
-    commitBody.author = committer;
-    commitBody.committer = committer;
-  }
-  const commit = await ghJson(env, "POST", "/git/commits", commitBody);
+  const commit = await ghJson(env, "POST", "/git/commits", {
+    message,
+    tree: tree.sha,
+    parents: [headSha],
+  });
   await ghJson(env, "PATCH", `/git/refs/heads/${branch}`, { sha: commit.sha });
   return commit;
 }
@@ -217,10 +133,10 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
-/** Wraps editor-authored body HTML in the same branded shell every hand-built
- * lesson page uses, so pages made in the block editor look identical to the
- * rest of the site (Montserrat, brand header, badge, lesson-shared.css). */
-function renderLessonHtml({ sourcePath, topicTitle, pageLabel, bodyHtml }) {
+/** Scaffolds a brand-new page in the same branded shell every hand-built
+ * lesson page uses (Montserrat, brand header, badge, lesson-shared.css),
+ * as a starting point for the HTML editor. */
+function placeholderLessonHtml(sourcePath, topicTitle, pageLabel) {
   const rel = relativeToLessonsRoot(sourcePath);
   return `<!doctype html>
 <html lang="en">
@@ -245,23 +161,12 @@ function renderLessonHtml({ sourcePath, topicTitle, pageLabel, bodyHtml }) {
     <h1>${escapeHtml(pageLabel)}</h1>
   </header>
   <div class="panel active">
-<!--block-editor-content:start-->
-${bodyHtml}
-<!--block-editor-content:end-->
+    <p><em>This page was scaffolded from the Admin CMS and doesn't have content yet. Use "Edit Content" to write the lesson.</em></p>
   </div>
 </div>
 </body>
 </html>
 `;
-}
-
-function placeholderLessonHtml(sourcePath, topicTitle, pageLabel) {
-  return renderLessonHtml({
-    sourcePath,
-    topicTitle,
-    pageLabel,
-    bodyHtml: `    <p><em>This page was scaffolded from the Admin CMS and doesn't have content yet. Use "Edit Content" to write the lesson.</em></p>`,
-  });
 }
 
 // ── taxonomy.json mutation ──────────────────────────────────────────────
@@ -272,13 +177,13 @@ function findSubjectTopics(taxonomyData, gradeSlug, subjectSlug) {
   return subject?.topics ?? null;
 }
 
-async function handleUpdatePageContent(body, env, cors, payload) {
-  const { gradeSlug, subjectSlug, topicSlug, pageSlug, bodyHtml } = body;
+async function handleUpdatePageContent(body, env, cors) {
+  const { gradeSlug, subjectSlug, topicSlug, pageSlug, html } = body;
   if (!gradeSlug || !subjectSlug || !topicSlug || !pageSlug) {
     return json({ error: "missing gradeSlug/subjectSlug/topicSlug/pageSlug" }, 400, cors);
   }
-  if (typeof bodyHtml !== "string" || !bodyHtml.trim()) {
-    return json({ error: "missing bodyHtml" }, 400, cors);
+  if (typeof html !== "string" || !html.trim()) {
+    return json({ error: "missing html" }, 400, cors);
   }
 
   const file = await getFile(env, "content/taxonomy.json");
@@ -292,26 +197,16 @@ async function handleUpdatePageContent(body, env, cors, payload) {
   const pageNode = topicNode.pages.find((p) => p.slug === pageSlug);
   if (!pageNode || !pageNode.sourcePath) return json({ error: "page not found" }, 404, cors);
 
-  const committer = { name: payload.name || payload.login, email: payload.email };
   const pageLabel = pageNode.label ?? pageNode.title;
   const commitMessage = `Admin CMS: edit content for "${topicNode.title}" - ${pageLabel} (${gradeSlug}/${subjectSlug})`;
 
-  const html = renderLessonHtml({
-    sourcePath: pageNode.sourcePath,
-    topicTitle: topicNode.title,
-    pageLabel,
-    bodyHtml,
-  });
-
-  await commitFiles(env, [{ path: pageNode.sourcePath, content: html }], commitMessage, committer);
+  // The editor sends the complete HTML document as the teacher wrote it --
+  // no server-side wrapping needed, so nothing can get double-wrapped on re-save.
+  await commitFiles(env, [{ path: pageNode.sourcePath, content: html }], commitMessage);
   return json({ ok: true, message: commitMessage }, 200, cors);
 }
 
 async function handleCommit(request, env, cors) {
-  const secret = env.SESSION_SECRET;
-  const payload = await verifySessionToken(bearerToken(request), secret);
-  if (!payload) return json({ error: "unauthorized" }, 401, cors);
-
   let body;
   try {
     body = await request.json();
@@ -323,15 +218,9 @@ async function handleCommit(request, env, cors) {
   if (!["create", "update", "delete", "update-page"].includes(action)) {
     return json({ error: "invalid action" }, 400, cors);
   }
-  if (!["admin", "editor"].includes(payload.role)) {
-    return json({ error: "forbidden" }, 403, cors);
-  }
-  if (action === "delete" && payload.role !== "admin") {
-    return json({ error: "only admins can delete topics" }, 403, cors);
-  }
 
   if (action === "update-page") {
-    return handleUpdatePageContent(body, env, cors, payload);
+    return handleUpdatePageContent(body, env, cors);
   }
 
   if (!gradeSlug || !subjectSlug) {
@@ -345,7 +234,6 @@ async function handleCommit(request, env, cors) {
   const topics = findSubjectTopics(taxonomyData, gradeSlug, subjectSlug);
   if (!topics) return json({ error: "grade/subject not found" }, 404, cors);
 
-  const committer = { name: payload.name || payload.login, email: payload.email };
   let commitMessage;
 
   if (action === "create") {
@@ -387,79 +275,9 @@ async function handleCommit(request, env, cors) {
   }
 
   // Everything above lands in ONE commit -- see commitFiles() for why that matters.
-  await commitFiles(env, files, commitMessage, committer);
+  await commitFiles(env, files, commitMessage);
 
   return json({ ok: true, message: commitMessage }, 200, cors);
-}
-
-// ── OAuth token exchange (sign-in) ──────────────────────────────────────
-
-async function handleOAuthExchange(request, env, cors) {
-  const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
-  if (!code) return json({ error: "missing code" }, 400, cors);
-
-  const clientId = env.GITHUB_CLIENT_ID;
-  const clientSecret = env.GITHUB_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    return json({ error: "OAuth credentials not configured on the proxy" }, 500, cors);
-  }
-
-  const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, code }),
-  });
-  if (!tokenRes.ok) return json({ error: "token exchange failed" }, 502, cors);
-
-  const tokenData = await tokenRes.json();
-  const accessToken = tokenData.access_token;
-  if (!accessToken) {
-    return json({ error: tokenData.error_description ?? "no access_token" }, 400, cors);
-  }
-
-  const profileRes = await fetch(GH_API + "/user", { headers: ghHeaders(accessToken) });
-  if (!profileRes.ok) return json({ error: "failed to fetch profile" }, 502, cors);
-  const profile = await profileRes.json();
-
-  let email = profile.email ?? "";
-  if (!email) {
-    const emailRes = await fetch(GH_API + "/user/emails", { headers: ghHeaders(accessToken) });
-    if (emailRes.ok) {
-      const emails = await emailRes.json();
-      const primary = emails.find((e) => e.primary && e.verified);
-      email = primary?.email ?? emails[0]?.email ?? "";
-    }
-  }
-
-  const role = deriveRole(email);
-  let sessionToken = null;
-  if (role) {
-    const now = Math.floor(Date.now() / 1000);
-    sessionToken = await signSessionToken(
-      {
-        login: profile.login,
-        name: profile.name ?? profile.login,
-        email,
-        role,
-        iat: now,
-        exp: now + SESSION_TTL_SECONDS,
-      },
-      env.SESSION_SECRET,
-    );
-  }
-
-  return json(
-    {
-      login: profile.login,
-      name: profile.name ?? profile.login,
-      email,
-      avatar_url: profile.avatar_url ?? "",
-      sessionToken,
-    },
-    200,
-    cors,
-  );
 }
 
 // ── Router ───────────────────────────────────────────────────────────────
@@ -473,15 +291,13 @@ export default {
       return new Response(null, { status: 204, headers: cors });
     }
 
-    // Normalize away accidental double slashes (e.g. a trailing slash on the
-    // configured proxy URL producing "//commit") so routing is robust either way.
     const pathname = new URL(request.url).pathname.replace(/\/+/g, "/");
 
     try {
       if (pathname === "/commit" && request.method === "POST") {
         return await handleCommit(request, env, cors);
       }
-      return await handleOAuthExchange(request, env, cors);
+      return json({ error: "not found" }, 404, cors);
     } catch (err) {
       return json({ error: err.message ?? "internal error" }, 500, cors);
     }

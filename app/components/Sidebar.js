@@ -7,15 +7,14 @@ import { useAuth } from "../contexts/AuthContext";
 
 /**
  * Collapsible sidebar that renders the full Grade → Subject → Topic tree
- * from /content/taxonomy.json. Teacher-guide pages are only shown to
- * editors and admins.
+ * from /content/taxonomy.json, visible to everyone. Teacher-guide pages
+ * are only shown to the logged-in admin.
  */
 export default function Sidebar() {
   const { user, loading } = useAuth();
-  if (loading || !user) return null;
+  if (loading) return null;
 
-  const role = user?.role ?? "student";
-  const canSeeTeacherGuide = role === "admin" || role === "editor";
+  const canSeeTeacherGuide = user?.role === "admin";
 
   return (
     <nav className="sidebar" aria-label="Curriculum navigation">

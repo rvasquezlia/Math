@@ -39,7 +39,6 @@ jobs:
 
       - name: Build static export
         env:
-          NEXT_PUBLIC_GITHUB_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GITHUB_CLIENT_ID }}
           NEXT_PUBLIC_OAUTH_PROXY_URL: ${{ vars.NEXT_PUBLIC_OAUTH_PROXY_URL }}
         run: npm run build
 
