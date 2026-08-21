@@ -32,6 +32,12 @@ export default function PageToolbar({ params, pageStatus, topicTitle, pageTitle 
           >
             Edit Topic
           </Link>
+          <Link
+            href={`/admin/topics/${params.grade}/${params.subject}/${params.topic}/${params.page}/edit/`}
+            className="btn-primary"
+          >
+            ✏️ Edit Content
+          </Link>
         </>
       )}
     </div>

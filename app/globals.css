@@ -3,12 +3,13 @@
   --bg: #f8fafc;
   --panel: #ffffff;
   --border: #cbd5e1;
-  --primary: #1d4ed8;
+  --primary: #1e3a8a;
   --primary-light: #eff6ff;
+  --accent: #d97706;
   --text: #0f172a;
   --muted: #475569;
   --sidebar-w: 260px;
-  --header-h: 56px;
+  --header-h: 64px;
 }
 
 * {
@@ -22,7 +23,7 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Montserrat", Arial, Helvetica, sans-serif;
 }
 
 a {
@@ -45,10 +46,9 @@ code {
   left: 0;
   right: 0;
   height: var(--header-h);
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background: var(--primary);
   z-index: 100;
-  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.2);
 }
 
 .app-header__inner {
@@ -66,19 +66,27 @@ code {
   gap: 0.75rem;
 }
 
+.app-header__logo {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
 .app-header__site-name {
   font-size: 1.05rem;
   font-weight: 700;
-  color: var(--primary);
+  color: #fff;
 }
 
 .app-header__grade-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.7rem;
   border-radius: 99px;
-  background: var(--primary-light);
-  color: var(--primary);
+  background: var(--accent);
+  color: #1c1917;
 }
 
 .app-shell {
@@ -235,8 +243,8 @@ code {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 99px;
   padding: 0.25rem 0.75rem 0.25rem 0.25rem;
 }
@@ -257,6 +265,7 @@ code {
 .user-chip__name {
   font-size: 0.82rem;
   font-weight: 600;
+  color: #fff;
 }
 
 .user-chip__role {
@@ -270,13 +279,13 @@ code {
   background: none;
   cursor: pointer;
   font-size: 0.7rem;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.75);
   padding: 0 0.1rem;
   margin-left: 0.15rem;
   line-height: 1;
 }
 .user-chip__signout:hover {
-  color: #dc2626;
+  color: #fca5a5;
 }
 
 /* ── Page shell (index + content pages) ────────────────────────────────── */
@@ -508,7 +517,7 @@ code {
 
 .login-card {
   background: var(--panel);
-  border: 1px solid var(--border);
+  border: 4px solid var(--primary);
   border-radius: 1.5rem;
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
   padding: 3rem 2.5rem;
@@ -518,9 +527,22 @@ code {
 }
 
 .login-card__logo {
-  font-size: 3rem;
+  display: block;
+  margin: 0 auto 1rem;
+  height: auto;
+}
+
+.login-card__badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #1c1917;
+  padding: 0.3rem 0.9rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
-  line-height: 1;
 }
 
 .login-card__title {
@@ -951,7 +973,7 @@ code {
 /* ── Extended topic section row (with status select & delete) ───────────── */
 
 .topic-sections__row--extended {
-  grid-template-columns: 120px 1fr 140px auto auto;
+  grid-template-columns: 120px 1fr 140px auto auto auto;
 }
 
 .topic-sections__status {
