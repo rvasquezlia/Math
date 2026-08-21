@@ -1,4 +1,4 @@
-name: Deploy OAuth Proxy (Cloudflare Worker)
+name: Deploy Admin Worker (Cloudflare)
 
 on:
   push:
@@ -24,17 +24,11 @@ jobs:
           workingDirectory: oauth-proxy
           command: deploy
 
-      - name: Set Worker secrets
+      - name: Set Worker secret
         working-directory: oauth-proxy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          OAUTH_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GITHUB_CLIENT_ID }}
-          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
-          SESSION_SECRET: ${{ secrets.SESSION_SIGNING_SECRET }}
           ADMIN_COMMIT_TOKEN: ${{ secrets.ADMIN_COMMIT_TOKEN }}
         run: |
-          npx wrangler secret put GITHUB_CLIENT_ID <<< "$OAUTH_CLIENT_ID"
-          npx wrangler secret put GITHUB_CLIENT_SECRET <<< "$OAUTH_CLIENT_SECRET"
-          npx wrangler secret put SESSION_SECRET <<< "$SESSION_SECRET"
           npx wrangler secret put GITHUB_REPO_TOKEN <<< "$ADMIN_COMMIT_TOKEN"

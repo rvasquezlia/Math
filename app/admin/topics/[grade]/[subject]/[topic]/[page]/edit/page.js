@@ -3,9 +3,38 @@ import path from "node:path";
 import taxonomy from "../../../../../../../../content/taxonomy.json";
 import EditPageClient from "./EditPageClient";
 
-const CONTENT_START = "<!--block-editor-content:start-->";
-const CONTENT_END = "<!--block-editor-content:end-->";
-const DEFAULT_BODY = "<p>Start writing your lesson…</p>";
+const DEFAULT_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New Page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../lesson-shared.css">
+<script src="../../../lesson-shared.js"></script>
+</head>
+<body>
+<div class="app-container">
+  <header>
+    <div class="brand-row">
+      <img src="../../../assets/lia-logo.png" alt="Lincoln International Academy logo" class="brand-logo">
+      <span class="brand-name">Lincoln International Academy</span>
+    </div>
+    <span class="badge">New Page</span>
+    <h1>New Page</h1>
+  </header>
+  <div class="panel active">
+
+    <!-- Start building here. Use an example from the library on the right,
+         or write your own HTML. -->
+
+  </div>
+</div>
+</body>
+</html>
+`;
 
 function findPageNode({ grade, subject, topic, page }) {
   const gradeNode = taxonomy.grades.find((g) => g.slug === grade);
@@ -13,23 +42,6 @@ function findPageNode({ grade, subject, topic, page }) {
   const topicNode = subjectNode?.topics.find((t) => t.slug === topic);
   const pageNode = topicNode?.pages.find((p) => p.slug === page);
   return { gradeNode, subjectNode, topicNode, pageNode };
-}
-
-/**
- * Pages previously saved by this editor are wrapped with marker comments,
- * so re-opening them extracts exactly what was last saved (no double
- * wrapping). Anything else is a hand-authored legacy lesson -- fall back to
- * the whole <body>, which the user has explicitly accepted may lose custom
- * interactivity the block editor can't represent on first save.
- */
-function extractEditableBody(html) {
-  const startIdx = html.indexOf(CONTENT_START);
-  const endIdx = html.indexOf(CONTENT_END);
-  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-    return html.slice(startIdx + CONTENT_START.length, endIdx).trim();
-  }
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  return bodyMatch ? bodyMatch[1].trim() : DEFAULT_BODY;
 }
 
 export function generateStaticParams() {
@@ -60,14 +72,11 @@ export default async function EditPageContentPage({ params }) {
     );
   }
 
-  let initialBody = DEFAULT_BODY;
-  let isLegacyContent = false;
+  let initialHtml = DEFAULT_HTML;
   try {
-    const raw = await fs.readFile(path.join(process.cwd(), pageNode.sourcePath), "utf8");
-    isLegacyContent = !raw.includes(CONTENT_START);
-    initialBody = extractEditableBody(raw);
+    initialHtml = await fs.readFile(path.join(process.cwd(), pageNode.sourcePath), "utf8");
   } catch {
-    // Not scaffolded on disk yet -- keep the starter content.
+    // Not scaffolded on disk yet -- start from the blank branded template.
   }
 
   return (
@@ -77,8 +86,7 @@ export default async function EditPageContentPage({ params }) {
       subjectNode={subjectNode}
       topicNode={topicNode}
       pageNode={pageNode}
-      initialBody={initialBody}
-      isLegacyContent={isLegacyContent}
+      initialHtml={initialHtml}
     />
   );
 }

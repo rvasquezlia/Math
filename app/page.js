@@ -1,11 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import taxonomy from "../content/taxonomy.json";
 import { useAuth } from "./contexts/AuthContext";
-import SignInButton from "./components/SignInButton";
-import logo from "../public/lia-logo.png";
 
 const PAGE_ORDER = [
   "vocabulary",
@@ -23,7 +20,7 @@ function visiblePages(pages, canEdit, canSeeTeacherGuide) {
     .filter((p) => {
       if (!p) return false;
       if (p.id === "teacher-guide" && !canSeeTeacherGuide) return false;
-      // Students only see published pages; editors/admins see all statuses
+      // Everyone else only sees published pages; admins see all statuses
       if (!canEdit && p.status && p.status !== "published") return false;
       return true;
     });
@@ -45,7 +42,7 @@ function computeStats() {
   return { grades: taxonomy.grades.length, totalSubjects, totalTopics, totalPages };
 }
 
-/** Topic card shared between student and editor views. */
+/** Topic card shared between the public view and the admin view. */
 function TopicCard({ topic, grade, subject, canEdit, canSeeTeacherGuide }) {
   const pages = visiblePages(topic.pages, canEdit, canSeeTeacherGuide);
 
@@ -96,59 +93,30 @@ function TopicCard({ topic, grade, subject, canEdit, canSeeTeacherGuide }) {
 
 export default function HomePage() {
   const { user, loading } = useAuth();
-  const role = user?.role ?? null;
-  const canEdit = role === "admin" || role === "editor";
-  const canSeeTeacherGuide = canEdit;
-  const isAdmin = role === "admin";
-  const isStudent = role === "student";
+  const isAdmin = user?.role === "admin";
+  const canSeeTeacherGuide = isAdmin;
 
-  // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="login-page">
-        <div className="login-card">
-          <Image src={logo} alt="Lincoln International Academy" className="login-card__logo" width={72} height={72} priority />
-          <span className="login-card__badge">LIA Math Curriculum</span>
-          <h1 className="login-card__title">Loading…</h1>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Signed out ───────────────────────────────────────────────────────────
-  if (!user) {
-    return (
-      <div className="login-page">
-        <div className="login-card">
-          <Image src={logo} alt="Lincoln International Academy" className="login-card__logo" width={72} height={72} priority />
-          <span className="login-card__badge">LIA Math Curriculum</span>
-          <h1 className="login-card__title">Welcome Back</h1>
-          <p className="login-card__sub">
-            Sign in with your school GitHub account to access lessons, activities, and
-            teacher resources.
-          </p>
-          <div className="login-card__actions">
-            <SignInButton />
-          </div>
-          <p className="login-card__hint">
-            Access is granted to staff and enrolled students only.
-          </p>
-        </div>
+      <div className="page-shell">
+        <section className="hero-card">
+          <p style={{ margin: 0 }}>Loading…</p>
+        </section>
       </div>
     );
   }
 
   const stats = computeStats();
 
-  // ── Student view ─────────────────────────────────────────────────────────
-  if (isStudent) {
+  // ── Public / browsing view (default for everyone, incl. logged-out) ──────
+  if (!isAdmin) {
     return (
       <div className="page-shell">
         <section className="hero-card student-welcome">
-          <span className="eyebrow">Student Dashboard</span>
-          <h1>Welcome, {user.name}! 👋</h1>
+          <span className="eyebrow">LIA Math Curriculum</span>
+          <h1>Welcome! 👋</h1>
           <p className="student-welcome__sub">
-            Browse your lessons below. Click any page button to open the lesson.
+            Browse the lessons below. Click any page button to open it.
           </p>
         </section>
 
@@ -188,7 +156,7 @@ export default function HomePage() {
     );
   }
 
-  // ── Editor / Admin view ──────────────────────────────────────────────────
+  // ── Admin view (logged in as the shared teacher/admin account) ──────────
   return (
     <div className="page-shell">
       <section className="hero-card">
@@ -196,18 +164,16 @@ export default function HomePage() {
         <h1>LIA Math Curriculum</h1>
         <p>Welcome back, <strong>{user.name}</strong>.</p>
 
-        {isAdmin && (
-          <dl className="stats">
-            <div><dt>Grades</dt><dd>{stats.grades}</dd></div>
-            <div><dt>Subjects</dt><dd>{stats.totalSubjects}</dd></div>
-            <div><dt>Topics</dt><dd>{stats.totalTopics}</dd></div>
-            <div><dt>Pages</dt><dd>{stats.totalPages}</dd></div>
-          </dl>
-        )}
+        <dl className="stats">
+          <div><dt>Grades</dt><dd>{stats.grades}</dd></div>
+          <div><dt>Subjects</dt><dd>{stats.totalSubjects}</dd></div>
+          <div><dt>Topics</dt><dd>{stats.totalTopics}</dd></div>
+          <div><dt>Pages</dt><dd>{stats.totalPages}</dd></div>
+        </dl>
 
         <div className="admin-toolbar" style={{ marginTop: "1rem" }}>
-          {isAdmin && <Link href="/admin" className="btn-primary">Admin Dashboard</Link>}
-          {canEdit && <Link href="/admin/topics/new" className="btn-ghost">+ New Topic</Link>}
+          <Link href="/admin" className="btn-primary">Admin Dashboard</Link>
+          <Link href="/admin/topics/new" className="btn-ghost">+ New Topic</Link>
         </div>
       </section>
 
@@ -219,14 +185,12 @@ export default function HomePage() {
             <div key={subject.id} className="subject-section">
               <div className="subject-section__header">
                 <h3 className="subject-heading">{subject.title}</h3>
-                {canEdit && (
-                  <Link
-                    href={`/admin/topics/new?grade=${grade.slug}&subject=${subject.slug}`}
-                    className="btn-ghost btn-ghost--sm"
-                  >
-                    + New Topic
-                  </Link>
-                )}
+                <Link
+                  href={`/admin/topics/new?grade=${grade.slug}&subject=${subject.slug}`}
+                  className="btn-ghost btn-ghost--sm"
+                >
+                  + New Topic
+                </Link>
               </div>
 
               <div className="topic-grid">
@@ -236,7 +200,7 @@ export default function HomePage() {
                     topic={topic}
                     grade={grade}
                     subject={subject}
-                    canEdit={canEdit}
+                    canEdit={isAdmin}
                     canSeeTeacherGuide={canSeeTeacherGuide}
                   />
                 ))}
@@ -248,5 +212,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-

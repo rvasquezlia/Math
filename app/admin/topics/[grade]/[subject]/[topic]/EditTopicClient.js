@@ -85,7 +85,7 @@ export default function EditTopicClient({ params, gradeNode, subjectNode, topicN
     setSaved(false);
     setSaving(true);
     try {
-      await updateTopic(user, gradeNode.slug, subjectNode.slug, draftTopic);
+      await updateTopic(gradeNode.slug, subjectNode.slug, draftTopic);
       setSaved(true);
     } catch (err) {
       setError(err.message ?? "Failed to save changes.");
@@ -98,7 +98,7 @@ export default function EditTopicClient({ params, gradeNode, subjectNode, topicN
     setError("");
     setDeleting(true);
     try {
-      await deleteTopic(user, gradeNode.slug, subjectNode.slug, topicNode.slug);
+      await deleteTopic(gradeNode.slug, subjectNode.slug, topicNode.slug);
       setShowDeleteConfirm(false);
       router.push("/admin");
     } catch (err) {
@@ -108,7 +108,7 @@ export default function EditTopicClient({ params, gradeNode, subjectNode, topicN
   }
 
   return (
-    <RequireRole roles={["admin", "editor"]}>
+    <RequireRole>
       <div className="page-shell">
         <section className="hero-card">
           <span className="eyebrow">Admin › Edit Topic</span>

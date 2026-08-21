@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useAuth } from "../contexts/AuthContext";
+import LoginForm from "./LoginForm";
 
 /**
- * Renders children only when the signed-in user has one of the allowed roles.
- * Otherwise shows an access-denied message with a link back home.
+ * Renders children only for a logged-in teacher/admin. Otherwise shows an
+ * inline login form right where the content would be -- once login
+ * succeeds, this re-renders with the real content in place, no navigation
+ * needed.
  */
-export default function RequireRole({ roles = ["admin", "editor"], children }) {
+export default function RequireRole({ roles = ["admin"], children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -22,11 +24,9 @@ export default function RequireRole({ roles = ["admin", "editor"], children }) {
     return (
       <div className="access-denied">
         <div className="access-denied__icon">🔒</div>
-        <h2 className="access-denied__title">Access Restricted</h2>
-        <p className="access-denied__sub">
-          You need {roles.join(" or ")} access to view this page.
-        </p>
-        <Link href="/" className="btn-primary">Back to Curriculum</Link>
+        <h2 className="access-denied__title">Teacher Login Required</h2>
+        <p className="access-denied__sub">Log in to create or edit lessons.</p>
+        <LoginForm />
       </div>
     );
   }

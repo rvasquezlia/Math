@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import taxonomy from "../../../../content/taxonomy.json";
 import RequireRole from "../../../components/RequireRole";
-import { useAuth } from "../../../contexts/AuthContext";
 import { createTopic } from "../../../../lib/adminApi";
 
 const PAGE_SLUGS = [
@@ -20,7 +19,6 @@ const PAGE_SLUGS = [
 
 function NewTopicForm() {
   const searchParams = useSearchParams();
-  const { user } = useAuth();
 
   const [gradeSlug, setGradeSlug] = useState(searchParams.get("grade") ?? "");
   const [subjectSlug, setSubjectSlug] = useState(searchParams.get("subject") ?? "");
@@ -63,7 +61,7 @@ function NewTopicForm() {
     setError("");
     setSaving(true);
     try {
-      await createTopic(user, gradeSlug, subjectSlug, newTopicJson);
+      await createTopic(gradeSlug, subjectSlug, newTopicJson);
       setSubmitted(true);
     } catch (err) {
       setError(err.message ?? "Failed to create topic.");
@@ -91,7 +89,7 @@ function NewTopicForm() {
   };
 
   return (
-    <RequireRole roles={["admin", "editor"]}>
+    <RequireRole>
       <div className="page-shell">
         <section className="hero-card">
           <span className="eyebrow">Admin › New Topic</span>
