@@ -203,22 +203,65 @@ async function commitFiles(env, files, message, committer) {
   return commit;
 }
 
-function placeholderLessonHtml(topicTitle, pageLabel) {
+/** Relative "../" prefix from a Lessons/-relative sourcePath back up to Lessons/. */
+function relativeToLessonsRoot(sourcePath) {
+  const segments = sourcePath.split("/"); // ["Lessons", grade, "Topics", topic, ...maybe "practice", "file.html"]
+  const depth = segments.length - 2; // drop "Lessons" and the filename
+  return "../".repeat(Math.max(depth, 1));
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** Wraps editor-authored body HTML in the same branded shell every hand-built
+ * lesson page uses, so pages made in the block editor look identical to the
+ * rest of the site (Montserrat, brand header, badge, lesson-shared.css). */
+function renderLessonHtml({ sourcePath, topicTitle, pageLabel, bodyHtml }) {
+  const rel = relativeToLessonsRoot(sourcePath);
   return `<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>${topicTitle} · ${pageLabel}</title>
-<link rel="stylesheet" href="/Math/Lessons/lesson-shared.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${escapeHtml(topicTitle)} - ${escapeHtml(pageLabel)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="${rel}lesson-shared.css">
+<script src="${rel}lesson-shared.js"></script>
 </head>
 <body>
-<main class="lesson">
-  <h1>${topicTitle} — ${pageLabel}</h1>
-  <p><em>This page was scaffolded from the Admin CMS and doesn't have content yet. Edit this file to add the lesson.</em></p>
-</main>
+<div class="app-container">
+  <header>
+    <div class="brand-row">
+      <img src="${rel}assets/lia-logo.png" alt="Lincoln International Academy logo" class="brand-logo">
+      <span class="brand-name">Lincoln International Academy</span>
+    </div>
+    <span class="badge">${escapeHtml(topicTitle)} - ${escapeHtml(pageLabel)}</span>
+    <h1>${escapeHtml(pageLabel)}</h1>
+  </header>
+  <div class="panel active">
+<!--block-editor-content:start-->
+${bodyHtml}
+<!--block-editor-content:end-->
+  </div>
+</div>
 </body>
 </html>
 `;
+}
+
+function placeholderLessonHtml(sourcePath, topicTitle, pageLabel) {
+  return renderLessonHtml({
+    sourcePath,
+    topicTitle,
+    pageLabel,
+    bodyHtml: `    <p><em>This page was scaffolded from the Admin CMS and doesn't have content yet. Use "Edit Content" to write the lesson.</em></p>`,
+  });
 }
 
 // ── taxonomy.json mutation ──────────────────────────────────────────────
@@ -227,6 +270,41 @@ function findSubjectTopics(taxonomyData, gradeSlug, subjectSlug) {
   const grade = taxonomyData.grades.find((g) => g.slug === gradeSlug);
   const subject = grade?.subjects.find((s) => s.slug === subjectSlug);
   return subject?.topics ?? null;
+}
+
+async function handleUpdatePageContent(body, env, cors, payload) {
+  const { gradeSlug, subjectSlug, topicSlug, pageSlug, bodyHtml } = body;
+  if (!gradeSlug || !subjectSlug || !topicSlug || !pageSlug) {
+    return json({ error: "missing gradeSlug/subjectSlug/topicSlug/pageSlug" }, 400, cors);
+  }
+  if (typeof bodyHtml !== "string" || !bodyHtml.trim()) {
+    return json({ error: "missing bodyHtml" }, 400, cors);
+  }
+
+  const file = await getFile(env, "content/taxonomy.json");
+  if (!file) return json({ error: "content/taxonomy.json not found" }, 500, cors);
+  const taxonomyData = JSON.parse(file.content);
+
+  const topics = findSubjectTopics(taxonomyData, gradeSlug, subjectSlug);
+  if (!topics) return json({ error: "grade/subject not found" }, 404, cors);
+  const topicNode = topics.find((t) => t.slug === topicSlug);
+  if (!topicNode) return json({ error: "topic not found" }, 404, cors);
+  const pageNode = topicNode.pages.find((p) => p.slug === pageSlug);
+  if (!pageNode || !pageNode.sourcePath) return json({ error: "page not found" }, 404, cors);
+
+  const committer = { name: payload.name || payload.login, email: payload.email };
+  const pageLabel = pageNode.label ?? pageNode.title;
+  const commitMessage = `Admin CMS: edit content for "${topicNode.title}" - ${pageLabel} (${gradeSlug}/${subjectSlug})`;
+
+  const html = renderLessonHtml({
+    sourcePath: pageNode.sourcePath,
+    topicTitle: topicNode.title,
+    pageLabel,
+    bodyHtml,
+  });
+
+  await commitFiles(env, [{ path: pageNode.sourcePath, content: html }], commitMessage, committer);
+  return json({ ok: true, message: commitMessage }, 200, cors);
 }
 
 async function handleCommit(request, env, cors) {
@@ -242,7 +320,7 @@ async function handleCommit(request, env, cors) {
   }
 
   const { action, gradeSlug, subjectSlug, topic, topicSlug } = body;
-  if (!["create", "update", "delete"].includes(action)) {
+  if (!["create", "update", "delete", "update-page"].includes(action)) {
     return json({ error: "invalid action" }, 400, cors);
   }
   if (!["admin", "editor"].includes(payload.role)) {
@@ -251,6 +329,11 @@ async function handleCommit(request, env, cors) {
   if (action === "delete" && payload.role !== "admin") {
     return json({ error: "only admins can delete topics" }, 403, cors);
   }
+
+  if (action === "update-page") {
+    return handleUpdatePageContent(body, env, cors, payload);
+  }
+
   if (!gradeSlug || !subjectSlug) {
     return json({ error: "missing gradeSlug/subjectSlug" }, 400, cors);
   }
@@ -298,7 +381,7 @@ async function handleCommit(request, env, cors) {
       if (existing) continue;
       files.push({
         path: page.sourcePath,
-        content: placeholderLessonHtml(topic.title, page.label ?? page.title),
+        content: placeholderLessonHtml(page.sourcePath, topic.title, page.label ?? page.title),
       });
     }
   }

@@ -190,6 +190,12 @@ export default function EditTopicClient({ params, gradeNode, subjectNode, topicN
                     >
                       Open
                     </Link>
+                    <Link
+                      className="btn-primary btn-primary--sm"
+                      href={`/admin/topics/${params.grade}/${params.subject}/${params.topic}/${page.slug}/edit/`}
+                    >
+                      ✏️ Edit Content
+                    </Link>
                     {isAdmin && (
                       <button
                         type="button"

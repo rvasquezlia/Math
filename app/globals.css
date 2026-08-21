@@ -973,7 +973,7 @@ code {
 /* ── Extended topic section row (with status select & delete) ───────────── */
 
 .topic-sections__row--extended {
-  grid-template-columns: 120px 1fr 140px auto auto;
+  grid-template-columns: 120px 1fr 140px auto auto auto;
 }
 
 .topic-sections__status {
