@@ -151,26 +151,56 @@ async function getFile(env, path) {
   return { sha: data.sha, content: decodeURIComponent(escape(atob(data.content))) };
 }
 
-async function putFile(env, path, content, message, sha, committer) {
-  const res = await fetch(
-    `${GH_API}/repos/${env.REPO_OWNER}/${env.REPO_NAME}/contents/${path}`,
-    {
-      method: "PUT",
-      headers: ghHeaders(env.GITHUB_REPO_TOKEN, { "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        message,
-        content: utf8ToBase64(content),
-        branch: env.REPO_BRANCH,
-        ...(sha ? { sha } : {}),
-        ...(committer ? { author: committer, committer } : {}),
-      }),
-    },
-  );
+async function ghJson(env, method, path, body) {
+  const res = await fetch(`${GH_API}/repos/${env.REPO_OWNER}/${env.REPO_NAME}${path}`, {
+    method,
+    headers: ghHeaders(env.GITHUB_REPO_TOKEN, { "Content-Type": "application/json" }),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`GitHub write failed for ${path}: ${res.status} ${body}`);
+    const text = await res.text();
+    throw new Error(`GitHub API ${method} ${path} failed: ${res.status} ${text}`);
   }
   return res.json();
+}
+
+/**
+ * Commit any number of files in a single atomic commit via the Git Data API
+ * (blobs -> tree -> commit -> ref update). One commit means one push event,
+ * so one Pages deploy -- unlike doing a Contents-API PUT per file, which
+ * fires a separate push (and a separate, competing Pages deployment) for
+ * every single file and can leave GitHub Pages' own deployment lock stuck,
+ * causing the *real* final deploy to fail outright.
+ */
+async function commitFiles(env, files, message, committer) {
+  const branch = env.REPO_BRANCH;
+  const ref = await ghJson(env, "GET", `/git/ref/heads/${branch}`);
+  const headSha = ref.object.sha;
+  const headCommit = await ghJson(env, "GET", `/git/commits/${headSha}`);
+
+  const treeItems = await Promise.all(
+    files.map(async ({ path, content }) => {
+      const blob = await ghJson(env, "POST", "/git/blobs", {
+        content: utf8ToBase64(content),
+        encoding: "base64",
+      });
+      return { path, mode: "100644", type: "blob", sha: blob.sha };
+    }),
+  );
+
+  const tree = await ghJson(env, "POST", "/git/trees", {
+    base_tree: headCommit.tree.sha,
+    tree: treeItems,
+  });
+
+  const commitBody = { message, tree: tree.sha, parents: [headSha] };
+  if (committer) {
+    commitBody.author = committer;
+    commitBody.committer = committer;
+  }
+  const commit = await ghJson(env, "POST", "/git/commits", commitBody);
+  await ghJson(env, "PATCH", `/git/refs/heads/${branch}`, { sha: commit.sha });
+  return commit;
 }
 
 function placeholderLessonHtml(topicTitle, pageLabel) {
@@ -256,14 +286,9 @@ async function handleCommit(request, env, cors) {
     commitMessage = `Admin CMS: delete topic "${removed.title}" (${gradeSlug}/${subjectSlug})`;
   }
 
-  await putFile(
-    env,
-    "content/taxonomy.json",
-    JSON.stringify(taxonomyData, null, 2) + "\n",
-    commitMessage,
-    file.sha,
-    committer,
-  );
+  const files = [
+    { path: "content/taxonomy.json", content: JSON.stringify(taxonomyData, null, 2) + "\n" },
+  ];
 
   // Scaffold placeholder HTML for any brand-new page so its link doesn't 404.
   if (action === "create" && Array.isArray(topic.pages)) {
@@ -271,16 +296,15 @@ async function handleCommit(request, env, cors) {
       if (!page.sourcePath) continue;
       const existing = await getFile(env, page.sourcePath).catch(() => null);
       if (existing) continue;
-      await putFile(
-        env,
-        page.sourcePath,
-        placeholderLessonHtml(topic.title, page.label ?? page.title),
-        `Admin CMS: scaffold ${page.label ?? page.title} for "${topic.title}"`,
-        undefined,
-        committer,
-      );
+      files.push({
+        path: page.sourcePath,
+        content: placeholderLessonHtml(topic.title, page.label ?? page.title),
+      });
     }
   }
+
+  // Everything above lands in ONE commit -- see commitFiles() for why that matters.
+  await commitFiles(env, files, commitMessage, committer);
 
   return json({ ok: true, message: commitMessage }, 200, cors);
 }
