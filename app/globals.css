@@ -109,6 +109,7 @@ code {
   flex-shrink: 0;
   background: var(--panel);
   border-right: 1px solid var(--border);
+  border-top: 4px solid var(--primary);
   overflow-y: auto;
   height: calc(100vh - var(--header-h));
   position: sticky;
@@ -117,20 +118,20 @@ code {
 }
 
 .sidebar__logo {
-  padding: 1rem 1rem 0.5rem;
+  padding: 1rem;
   border-bottom: 1px solid var(--border);
   margin-bottom: 0.5rem;
 }
 
 .sidebar__home-link {
-  font-weight: 700;
-  font-size: 0.95rem;
+  font-weight: 800;
+  font-size: 1rem;
   color: var(--primary);
   text-decoration: none;
 }
 
 .sidebar__grade {
-  margin: 0;
+  margin: 0 0 0.25rem;
 }
 
 .sidebar__grade-toggle,
@@ -149,15 +150,16 @@ code {
 
 .sidebar__grade-toggle {
   padding: 0.55rem 1rem;
-  font-weight: 700;
-  font-size: 0.82rem;
+  font-weight: 800;
+  font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  border-left: 4px solid var(--accent);
 }
 
 .sidebar__grade-toggle:hover {
-  background: var(--bg);
+  background: var(--primary-light);
 }
 
 .sidebar__subject {
@@ -167,7 +169,7 @@ code {
 .sidebar__subject-toggle {
   padding: 0.4rem 0.75rem;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--primary);
 }
 
@@ -189,7 +191,7 @@ code {
 .sidebar__topic-toggle {
   padding: 0.35rem 0.75rem;
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
 }
 
@@ -199,23 +201,41 @@ code {
 }
 
 .sidebar__pages {
-  margin: 0;
-  padding: 0 0 0 1rem;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0 0 0 0.75rem;
   list-style: none;
+  display: grid;
+  gap: 0.3rem;
 }
 
 .sidebar__page-link {
   display: block;
-  padding: 0.28rem 0.65rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-  border-radius: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
 .sidebar__page-link:hover {
   background: var(--primary-light);
+  border-color: var(--primary);
   color: var(--primary);
   text-decoration: none;
+}
+
+.sidebar__page-link--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+.sidebar__page-link--active:hover {
+  background: var(--primary);
+  color: #fff;
 }
 
 .sidebar__chevron {
