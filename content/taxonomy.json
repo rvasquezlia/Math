@@ -150,64 +150,6 @@
                   "sourcePath": "Lessons/Seventh/Topics/integers-and-operations/teacher-guide.html"
                 }
               ]
-            },
-            {
-              "id": "test",
-              "title": "test",
-              "slug": "test",
-              "standard": "6.NS.A.1",
-              "summary": "test",
-              "pages": [
-                {
-                  "id": "vocabulary",
-                  "title": "Vocabulary",
-                  "slug": "vocabulary",
-                  "label": "Vocabulary",
-                  "sourcePath": "Lessons/Seventh/Topics/test/vocabulary.html"
-                },
-                {
-                  "id": "explanation",
-                  "title": "Explanation",
-                  "slug": "explanation",
-                  "label": "Explanation",
-                  "sourcePath": "Lessons/Seventh/Topics/test/explanation.html"
-                },
-                {
-                  "id": "guided",
-                  "title": "Guided Practice",
-                  "slug": "guided",
-                  "label": "Guided Practice",
-                  "sourcePath": "Lessons/Seventh/Topics/test/practice/guided.html"
-                },
-                {
-                  "id": "exercises",
-                  "title": "Exercises",
-                  "slug": "exercises",
-                  "label": "Exercises",
-                  "sourcePath": "Lessons/Seventh/Topics/test/practice/exercises.html"
-                },
-                {
-                  "id": "enrichment",
-                  "title": "Enrichment",
-                  "slug": "enrichment",
-                  "label": "Enrichment",
-                  "sourcePath": "Lessons/Seventh/Topics/test/practice/enrichment.html"
-                },
-                {
-                  "id": "assessment",
-                  "title": "Assessment",
-                  "slug": "assessment",
-                  "label": "Assessment",
-                  "sourcePath": "Lessons/Seventh/Topics/test/practice/assessment.html"
-                },
-                {
-                  "id": "teacher-guide",
-                  "title": "Teacher Guide",
-                  "slug": "teacher-guide",
-                  "label": "Teacher Guide",
-                  "sourcePath": "Lessons/Seventh/Topics/test/teacher-guide.html"
-                }
-              ]
             }
           ]
         }
